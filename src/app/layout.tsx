@@ -77,7 +77,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
-      <body className="min-h-screen flex flex-col antialiased overflow-x-hidden">
+      <body className="min-h-screen flex flex-col antialiased">
         <JsonLd
           data={{
             "@context": "https://schema.org",
@@ -151,7 +151,7 @@ export default function RootLayout({
           }}
         />
         <Navbar />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 overflow-x-hidden">{children}</main>
         <Footer />
         <WhatsAppButton />
       </body>

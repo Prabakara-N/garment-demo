@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Send, CheckCircle } from "lucide-react";
 import { COUNTRIES } from "@/lib/data";
 import { fadeInUp } from "@/lib/animations";
+import { CustomDropdown } from "@/components/ui/CustomDropdown";
 
 interface FormData {
   name: string;
@@ -201,38 +202,27 @@ export function ContactForm() {
           <label htmlFor="contact-country" className={LABEL_CLASS}>
             Country
           </label>
-          <select
+          <CustomDropdown
             id="contact-country"
             value={formData.country}
-            onChange={(e) => handleChange("country", e.target.value)}
-            className={INPUT_CLASS}
-          >
-            <option value="">Select country</option>
-            {COUNTRIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => handleChange("country", val)}
+            options={COUNTRIES}
+            placeholder="Select country"
+            searchable
+          />
         </div>
 
         <div>
           <label htmlFor="contact-subject" className={LABEL_CLASS}>
             Subject
           </label>
-          <select
+          <CustomDropdown
             id="contact-subject"
             value={formData.subject}
-            onChange={(e) => handleChange("subject", e.target.value)}
-            className={INPUT_CLASS}
-          >
-            <option value="">Select subject</option>
-            {SUBJECTS.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => handleChange("subject", val)}
+            options={SUBJECTS}
+            placeholder="Select subject"
+          />
         </div>
       </div>
 

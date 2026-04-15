@@ -7,7 +7,7 @@ import { slideInLeft, fadeIn } from "@/lib/animations";
 
 export default function HeroSection() {
   return (
-    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
+    <section className="relative z-0 min-h-[90vh] flex items-center justify-center overflow-hidden">
       <Image
         src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1920&h=1080&fit=crop"
         alt="Garment manufacturing facility"

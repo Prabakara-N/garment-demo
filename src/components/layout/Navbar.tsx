@@ -5,7 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Phone } from "lucide-react";
+import WhatsAppIcon from "@/components/ui/WhatsAppIcon";
 import { COMPANY } from "@/lib/data";
+
+const WHATSAPP_URL = `https://wa.me/${COMPANY.whatsapp}?text=${encodeURIComponent(
+  "Hi, I visited your website and I'm interested in your products."
+)}`;
 
 interface NavLink {
   label: string;
@@ -60,10 +65,10 @@ export function Navbar() {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-50 isolate transition-all duration-300 ${
           isScrolled
             ? "bg-white/95 backdrop-blur-md shadow-lg"
-            : "bg-white/80 backdrop-blur-sm"
+            : "bg-white shadow-sm"
         }`}
       >
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
@@ -213,6 +218,15 @@ export function Navbar() {
                   >
                     Request Quote
                   </Link>
+                  <a
+                    href={WHATSAPP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#25D366] px-5 py-3 text-sm font-semibold text-white shadow-md transition-all hover:brightness-110 font-body"
+                  >
+                    <WhatsAppIcon className="h-5 w-5" />
+                    WhatsApp Us
+                  </a>
                 </div>
               </div>
             </motion.div>
