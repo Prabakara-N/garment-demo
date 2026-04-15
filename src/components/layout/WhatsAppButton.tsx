@@ -1,7 +1,7 @@
 "use client";
 
-import { MessageCircle } from "lucide-react";
 import { COMPANY } from "@/lib/data";
+import WhatsAppIcon from "@/components/ui/WhatsAppIcon";
 
 const WHATSAPP_MESSAGE = encodeURIComponent(
   "Hi, I visited your website and I'm interested in your products."
@@ -23,7 +23,7 @@ export function WhatsAppButton() {
       <span className="absolute inset-0 animate-pulse rounded-full bg-[#25D366] opacity-20" />
 
       {/* Icon */}
-      <MessageCircle className="relative h-6 w-6 fill-white" />
+      <WhatsAppIcon className="relative h-6 w-6" />
     </a>
   );
 }

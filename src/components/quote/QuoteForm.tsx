@@ -13,10 +13,10 @@ import {
   FileText,
   Eye,
   Pencil,
-  MessageCircle,
   ChevronDown,
 } from "lucide-react";
 import { COUNTRIES, COMPANY } from "@/lib/data";
+import WhatsAppIcon from "@/components/ui/WhatsAppIcon";
 import { fadeInUp } from "@/lib/animations";
 
 // ──────────────────────────────────────────────
@@ -36,9 +36,8 @@ interface StepTwoData {
   productType: string;
   fabric: string;
   gsmRange: string;
-  colors: string[];
   sizes: string[];
-  quantity: string;
+  sizeDetails: Record<string, Record<string, string>>;
   printType: string;
 }
 
@@ -157,9 +156,8 @@ const INITIAL_DATA: FormData = {
     productType: "",
     fabric: "",
     gsmRange: "",
-    colors: [],
     sizes: [],
-    quantity: "",
+    sizeDetails: {},
     printType: "",
   },
   stepThree: {
@@ -194,12 +192,25 @@ function validateStepTwo(data: StepTwoData): StepErrors {
   if (!data.productType) errors.productType = "Product type is required";
   if (!data.fabric) errors.fabric = "Fabric is required";
   if (!data.gsmRange) errors.gsmRange = "GSM range is required";
-  if (data.colors.length === 0) errors.colors = "Select at least one color";
   if (data.sizes.length === 0) errors.sizes = "Select at least one size";
-  if (!data.quantity.trim()) {
-    errors.quantity = "Quantity is required";
-  } else if (parseInt(data.quantity, 10) < 500) {
-    errors.quantity = "Minimum order quantity is 500 pieces";
+  if (data.sizes.length > 0) {
+    const hasColors = data.sizes.some(
+      (s) => Object.keys(data.sizeDetails[s] || {}).length > 0
+    );
+    if (!hasColors) {
+      errors.sizeDetails = "Select colors and enter quantities for each size";
+    } else {
+      let total = 0;
+      for (const size of data.sizes) {
+        const colorQtys = data.sizeDetails[size] || {};
+        for (const qty of Object.values(colorQtys)) {
+          total += parseInt(qty || "0", 10) || 0;
+        }
+      }
+      if (total < 500) {
+        errors.sizeDetails = "Minimum total quantity is 500 pieces";
+      }
+    }
   }
   return errors;
 }
@@ -612,16 +623,37 @@ function StepOne({
   );
 }
 
+function getTotalQuantity(sizeDetails: Record<string, Record<string, string>>): number {
+  let total = 0;
+  for (const colorQtys of Object.values(sizeDetails)) {
+    for (const qty of Object.values(colorQtys)) {
+      total += parseInt(qty || "0", 10) || 0;
+    }
+  }
+  return total;
+}
+
+function getSizeTotal(colorQtys: Record<string, string>): number {
+  return Object.values(colorQtys).reduce(
+    (sum, q) => sum + (parseInt(q || "0", 10) || 0),
+    0
+  );
+}
+
 function StepTwo({
   data,
   errors,
   onChange,
-  onMultiChange,
+  onSizesChange,
+  onToggleSizeColor,
+  onColorQtyChange,
 }: {
   data: StepTwoData;
   errors: StepErrors;
   onChange: (field: keyof StepTwoData, value: string) => void;
-  onMultiChange: (field: "colors" | "sizes", values: string[]) => void;
+  onSizesChange: (values: string[]) => void;
+  onToggleSizeColor: (size: string, color: string) => void;
+  onColorQtyChange: (size: string, color: string, value: string) => void;
 }) {
   return (
     <div className="space-y-5">
@@ -676,62 +708,125 @@ function StepTwo({
 
       <div>
         <label className={LABEL_CLASS}>
-          Colors <span className="text-red-500">*</span>
-        </label>
-        <CheckboxGroup
-          options={COLOR_OPTIONS}
-          selected={data.colors}
-          onChange={(values) => onMultiChange("colors", values)}
-        />
-        {errors.colors && (
-          <p className="text-red-500 text-xs mt-1">{errors.colors}</p>
-        )}
-      </div>
-
-      <div>
-        <label className={LABEL_CLASS}>
           Sizes <span className="text-red-500">*</span>
         </label>
         <CheckboxGroup
           options={SIZE_OPTIONS}
           selected={data.sizes}
-          onChange={(values) => onMultiChange("sizes", values)}
+          onChange={onSizesChange}
         />
         {errors.sizes && (
           <p className="text-red-500 text-xs mt-1">{errors.sizes}</p>
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        <div>
-          <label htmlFor="q-quantity" className={LABEL_CLASS}>
-            Quantity (pieces) <span className="text-red-500">*</span>
+      {data.sizes.length > 0 && (
+        <div className="space-y-4">
+          <label className={LABEL_CLASS}>
+            Colors & Quantity per Size <span className="text-red-500">*</span>
           </label>
-          <input
-            id="q-quantity"
-            type="number"
-            min={500}
-            value={data.quantity}
-            onChange={(e) => onChange("quantity", e.target.value)}
-            placeholder="Min 500"
-            className={INPUT_CLASS}
-          />
-          {errors.quantity && (
-            <p className="text-red-500 text-xs mt-1">{errors.quantity}</p>
+
+          {data.sizes.map((size) => {
+            const colorQtys = data.sizeDetails[size] || {};
+            const selectedColors = Object.keys(colorQtys);
+            const sizeTotal = getSizeTotal(colorQtys);
+
+            return (
+              <div
+                key={size}
+                className="border border-gray-200 rounded-xl p-4 space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-body text-sm font-semibold text-navy">
+                    {size}
+                  </span>
+                  {sizeTotal > 0 && (
+                    <span className="font-body text-xs text-navy/60">
+                      Subtotal: {sizeTotal.toLocaleString()} pcs
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  {COLOR_OPTIONS.map((color) => {
+                    const isActive = color in colorQtys;
+                    return (
+                      <label
+                        key={color}
+                        className={
+                          isActive ? CHECKBOX_LABEL_ACTIVE : CHECKBOX_LABEL
+                        }
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isActive}
+                          onChange={() => onToggleSizeColor(size, color)}
+                          className="sr-only"
+                        />
+                        {isActive && (
+                          <Check className="w-3.5 h-3.5 text-gold" />
+                        )}
+                        {color}
+                      </label>
+                    );
+                  })}
+                </div>
+
+                {selectedColors.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                    {selectedColors.map((color) => (
+                      <div key={color}>
+                        <label
+                          htmlFor={`q-${size}-${color}`}
+                          className="block text-xs font-medium text-navy/70 mb-1"
+                        >
+                          {color}
+                        </label>
+                        <input
+                          id={`q-${size}-${color}`}
+                          type="number"
+                          min={0}
+                          value={colorQtys[color]}
+                          onChange={(e) =>
+                            onColorQtyChange(size, color, e.target.value)
+                          }
+                          placeholder="Qty"
+                          className={INPUT_CLASS}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          <div className="flex items-center justify-between rounded-lg bg-navy/5 px-4 py-2.5">
+            <span className="font-body text-sm text-navy/70">
+              Total Quantity
+            </span>
+            <span className="font-body text-sm font-bold text-navy">
+              {getTotalQuantity(data.sizeDetails).toLocaleString()} pieces
+            </span>
+          </div>
+
+          {errors.sizeDetails && (
+            <p className="text-red-500 text-xs mt-1">{errors.sizeDetails}</p>
           )}
         </div>
-        <div>
-          <label htmlFor="q-printType" className={LABEL_CLASS}>
-            Print / Embroidery
-          </label>
-          <CustomSelect
-            id="q-printType"
-            value={data.printType}
-            onChange={(val) => onChange("printType", val)}
-            options={PRINT_TYPES}
-            placeholder="Select option"
-          />
-        </div>
+      )}
+
+      <div>
+        <label htmlFor="q-printType" className={LABEL_CLASS}>
+          Print / Embroidery
+        </label>
+        <CustomSelect
+          id="q-printType"
+          value={data.printType}
+          onChange={(val) => onChange("printType", val)}
+          options={PRINT_TYPES}
+          placeholder="Select option"
+        />
       </div>
     </div>
   );
@@ -835,6 +930,95 @@ function StepThree({
   );
 }
 
+function SizeColorQtyReview({
+  sizeDetails,
+  sizes,
+  onEdit,
+}: {
+  sizeDetails: Record<string, Record<string, string>>;
+  sizes: string[];
+  onEdit: () => void;
+}) {
+  const activeSizes = sizes.filter(
+    (s) => Object.keys(sizeDetails[s] || {}).length > 0
+  );
+
+  return (
+    <div className="bg-bg-light rounded-xl p-5 md:p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-heading text-lg font-bold text-navy">
+          Quantity Breakdown
+        </h3>
+        <button
+          type="button"
+          onClick={onEdit}
+          className="inline-flex items-center gap-1.5 text-sm font-body text-gold-dark hover:text-gold font-medium transition-colors"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+          Edit
+        </button>
+      </div>
+
+      {activeSizes.length === 0 ? (
+        <p className="font-body text-sm text-text-secondary">—</p>
+      ) : (
+        <div className="overflow-x-auto -mx-2">
+          <table className="w-full text-sm font-body">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-2 px-2 text-xs uppercase tracking-wider text-text-secondary font-medium">
+                  Size
+                </th>
+                <th className="text-left py-2 px-2 text-xs uppercase tracking-wider text-text-secondary font-medium">
+                  Color
+                </th>
+                <th className="text-right py-2 px-2 text-xs uppercase tracking-wider text-text-secondary font-medium">
+                  Qty
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeSizes.map((size) => {
+                const colorQtys = sizeDetails[size] || {};
+                const entries = Object.entries(colorQtys).filter(
+                  ([, q]) => (parseInt(q || "0", 10) || 0) > 0
+                );
+                return entries.map(([color, qty], i) => (
+                  <tr
+                    key={`${size}-${color}`}
+                    className="border-b border-gray-100 last:border-b-0"
+                  >
+                    <td className="py-2 px-2 font-medium text-navy">
+                      {i === 0 ? size : ""}
+                    </td>
+                    <td className="py-2 px-2 text-text-primary">{color}</td>
+                    <td className="py-2 px-2 text-right text-text-primary">
+                      {parseInt(qty, 10).toLocaleString()}
+                    </td>
+                  </tr>
+                ));
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-navy/20">
+                <td
+                  colSpan={2}
+                  className="py-2.5 px-2 font-semibold text-navy"
+                >
+                  Total
+                </td>
+                <td className="py-2.5 px-2 text-right font-bold text-navy">
+                  {getTotalQuantity(sizeDetails).toLocaleString()} pcs
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StepFour({
   data,
   goToStep,
@@ -873,11 +1057,14 @@ function StepFour({
           { label: "Product Type", value: stepTwo.productType },
           { label: "Fabric", value: stepTwo.fabric },
           { label: "GSM Range", value: stepTwo.gsmRange ? `${stepTwo.gsmRange} GSM` : "" },
-          { label: "Colors", value: stepTwo.colors.join(", ") },
-          { label: "Sizes", value: stepTwo.sizes.join(", ") },
-          { label: "Quantity", value: stepTwo.quantity ? `${stepTwo.quantity} pieces` : "" },
           { label: "Print / Embroidery", value: stepTwo.printType },
         ]}
+      />
+
+      <SizeColorQtyReview
+        sizeDetails={stepTwo.sizeDetails}
+        sizes={stepTwo.sizes}
+        onEdit={() => goToStep(1)}
       />
 
       <ReviewSection
@@ -950,7 +1137,7 @@ function SuccessState() {
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 px-6 py-3 bg-whatsapp text-white font-body font-semibold rounded-lg hover:brightness-110 transition-all shadow-md"
         >
-          <MessageCircle className="w-5 h-5" />
+          <WhatsAppIcon className="w-5 h-5" />
           WhatsApp: {COMPANY.phone}
         </a>
       </motion.div>
@@ -1002,15 +1189,72 @@ export function QuoteForm() {
     []
   );
 
-  const updateStepTwoMulti = useCallback(
-    (field: "colors" | "sizes", values: string[]) => {
+  const updateSizes = useCallback((values: string[]) => {
+    setFormData((prev) => {
+      const kept: Record<string, Record<string, string>> = {};
+      for (const size of values) {
+        if (prev.stepTwo.sizeDetails[size]) {
+          kept[size] = prev.stepTwo.sizeDetails[size];
+        }
+      }
+      return {
+        ...prev,
+        stepTwo: { ...prev.stepTwo, sizes: values, sizeDetails: kept },
+      };
+    });
+    setErrors((prev) => {
+      if (prev.sizes || prev.sizeDetails) {
+        const { sizes: _s, sizeDetails: _d, ...rest } = prev;
+        return rest;
+      }
+      return prev;
+    });
+  }, []);
+
+  const toggleSizeColor = useCallback((size: string, color: string) => {
+    setFormData((prev) => {
+      const current = prev.stepTwo.sizeDetails[size] || {};
+      const hasColor = color in current;
+      const updated = hasColor
+        ? Object.fromEntries(
+            Object.entries(current).filter(([c]) => c !== color)
+          )
+        : { ...current, [color]: "" };
+      return {
+        ...prev,
+        stepTwo: {
+          ...prev.stepTwo,
+          sizeDetails: { ...prev.stepTwo.sizeDetails, [size]: updated },
+        },
+      };
+    });
+    setErrors((prev) => {
+      if (prev.sizeDetails) {
+        const { sizeDetails: _, ...rest } = prev;
+        return rest;
+      }
+      return prev;
+    });
+  }, []);
+
+  const updateColorQuantity = useCallback(
+    (size: string, color: string, value: string) => {
       setFormData((prev) => ({
         ...prev,
-        stepTwo: { ...prev.stepTwo, [field]: values },
+        stepTwo: {
+          ...prev.stepTwo,
+          sizeDetails: {
+            ...prev.stepTwo.sizeDetails,
+            [size]: {
+              ...(prev.stepTwo.sizeDetails[size] || {}),
+              [color]: value,
+            },
+          },
+        },
       }));
       setErrors((prev) => {
-        if (prev[field]) {
-          const { [field]: _, ...rest } = prev;
+        if (prev.sizeDetails) {
+          const { sizeDetails: _, ...rest } = prev;
           return rest;
         }
         return prev;
@@ -1116,7 +1360,9 @@ export function QuoteForm() {
                 data={formData.stepTwo}
                 errors={errors}
                 onChange={updateStepTwo}
-                onMultiChange={updateStepTwoMulti}
+                onSizesChange={updateSizes}
+                onToggleSizeColor={toggleSizeColor}
+                onColorQtyChange={updateColorQuantity}
               />
             )}
             {currentStep === 2 && (
@@ -1134,7 +1380,7 @@ export function QuoteForm() {
         </AnimatePresence>
 
         {/* Navigation */}
-        <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
+        <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 mt-8 pt-6 border-t border-gray-100">
           <button
             type="button"
             onClick={goPrev}
@@ -1153,7 +1399,7 @@ export function QuoteForm() {
             <button
               type="button"
               onClick={goNext}
-              className="inline-flex items-center gap-2 px-7 py-3 bg-navy text-white font-body font-semibold text-sm rounded-lg hover:bg-navy-light transition-colors shadow-md hover:shadow-lg"
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-7 py-3 bg-navy text-white font-body font-semibold text-sm rounded-lg hover:bg-navy-light transition-colors shadow-md hover:shadow-lg"
             >
               Next
               <ChevronRight className="w-4 h-4" />
@@ -1162,9 +1408,9 @@ export function QuoteForm() {
             <button
               type="button"
               onClick={handleSubmit}
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-gold text-navy font-heading font-bold text-base rounded-lg hover:bg-gold-dark transition-colors shadow-lg hover:shadow-xl"
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-6 sm:px-8 py-3 bg-gold text-navy font-heading font-bold text-sm sm:text-base rounded-lg hover:bg-gold-dark transition-colors shadow-lg hover:shadow-xl"
             >
-              <Send className="w-5 h-5" />
+              <Send className="w-4 h-4 sm:w-5 sm:h-5" />
               Submit Inquiry
             </button>
           )}

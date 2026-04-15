@@ -1,8 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MapPin, Phone, Mail, Clock, MessageCircle } from "lucide-react";
+import { MapPin, Phone, Mail, Clock } from "lucide-react";
 import { COMPANY } from "@/lib/data";
+import WhatsAppIcon from "@/components/ui/WhatsAppIcon";
 import { fadeInUp, staggerContainer } from "@/lib/animations";
 
 const CONTACT_ITEMS = [
@@ -92,7 +93,7 @@ export function ContactInfo() {
           rel="noopener noreferrer"
           className="inline-flex items-center gap-3 px-6 py-3 bg-whatsapp text-white font-body font-semibold rounded-lg hover:brightness-110 transition-all shadow-md hover:shadow-lg"
         >
-          <MessageCircle className="w-5 h-5" />
+          <WhatsAppIcon className="w-5 h-5" />
           Chat on WhatsApp
         </a>
       </motion.div>

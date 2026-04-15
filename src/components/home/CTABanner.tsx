@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { MessageCircle } from "lucide-react";
 import { COMPANY } from "@/lib/data";
+import WhatsAppIcon from "@/components/ui/WhatsAppIcon";
 import { fadeInUp } from "@/lib/animations";
 
 export default function CTABanner() {
@@ -41,7 +41,7 @@ export default function CTABanner() {
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-whatsapp text-white font-heading font-semibold text-lg hover:brightness-110 transition-all duration-300 shadow-lg hover:shadow-xl"
             >
-              <MessageCircle className="w-5 h-5" />
+              <WhatsAppIcon className="w-5 h-5" />
               WhatsApp Us
             </a>
           </div>
